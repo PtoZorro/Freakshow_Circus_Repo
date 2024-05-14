@@ -22,6 +22,14 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float groundDetectRadius = 0.1f;
     [SerializeField] LayerMask groundLayer;
 
+    [Header("Feedback & Graphics")]
+    [SerializeField] GameObject handsGun;
+    [SerializeField] GameObject handsAxe;
+    [SerializeField] GameObject handsFlash;
+    Animator gunAnim;
+    Animator axeAnim;
+    Animator flashAnim;
+
     //Valores privados
     Vector2 move;
     Vector2 look;
@@ -31,6 +39,9 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         anim = GetComponent<Animator>();
+        gunAnim = handsGun.GetComponent<Animator>();
+        axeAnim = handsAxe.GetComponent<Animator>();
+        flashAnim = handsFlash.GetComponent<Animator>();
     }
 
     void Start()
@@ -41,6 +52,25 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         isGrounded = Physics.CheckSphere(groundCheck.transform.position, groundDetectRadius, groundLayer);
+
+        if (move == Vector2.zero)
+        {
+            gunAnim.SetBool("iddle", true);
+            axeAnim.SetBool("iddle", true);
+            flashAnim.SetBool("iddle", true);
+            gunAnim.SetBool("walk", false);
+            axeAnim.SetBool("walk", false);
+            flashAnim.SetBool("walk", false);
+        }
+        else
+        {
+            gunAnim.SetBool("iddle", false);
+            axeAnim.SetBool("iddle", false);
+            flashAnim.SetBool("iddle", false);
+            gunAnim.SetBool("walk", true);
+            axeAnim.SetBool("walk", true);
+            flashAnim.SetBool("walk", true);
+        }
     }
 
     private void FixedUpdate()
