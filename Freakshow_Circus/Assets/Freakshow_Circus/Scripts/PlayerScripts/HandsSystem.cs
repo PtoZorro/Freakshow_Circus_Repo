@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -41,6 +42,7 @@ public class HandsSystem : MonoBehaviour
     [SerializeField] bool shooting; //Verdadero cuando ESTAMOS DISPARANDO
     [SerializeField] bool shootingAim;
     [SerializeField] bool attacking;
+    [SerializeField] bool changing;
     [SerializeField] bool alreadyAttacked;
     [SerializeField] bool canShoot; //Verdadero cuando PODEMOS DISPARAR
     [SerializeField] bool reloading; //Verdadero cuando ESTAMOS RECARGANDO
@@ -207,21 +209,24 @@ public class HandsSystem : MonoBehaviour
         reloading = false; //Salir del estado de recarga (Se pueden hacer otras cosas con el arma)
         handsFlash.SetActive(false);
         handsFlash.SetActive(true);
+        flashAnim.SetTrigger("fast");
     }
 
     void ResetChange() 
     {
         canChange = true;
         if (handsTemp != null) handsTemp.SetActive(false);
+        if (handsTemp == handsGun) handsFlash.SetActive(false);
         handsTemp = null;
         hiding = false;
+        changing = false; 
     }
 
     #region New Input Methods
 
     public void OnShoot(InputAction.CallbackContext context)
     {
-        if (context.started && gunOn && !allowButtonHold && !hiding)
+        if (context.started && gunOn && !allowButtonHold && !hiding && !changing)
         {
             shooting = !aiming;
             shootingAim = aiming;
@@ -244,7 +249,7 @@ public class HandsSystem : MonoBehaviour
 
     public void OnAim(InputAction.CallbackContext context)
     {
-        if (context.started && gunOn && bulletsLeft > 0 && !shooting && !hiding && !reloading)
+        if (context.started && gunOn && bulletsLeft > 0 && !shooting && !hiding && !reloading && !changing)
         {
             aiming = true;
             gunAnim.SetBool("aiming", true);
@@ -258,7 +263,7 @@ public class HandsSystem : MonoBehaviour
 
     public void OnReload(InputAction.CallbackContext context)
     {
-        if (context.started && gunOn && !hiding)
+        if (context.started && gunOn && !hiding && !changing)
         {
             if (bulletsLeft < ammoSize && !reloading)
             {
@@ -271,7 +276,7 @@ public class HandsSystem : MonoBehaviour
 
     public void OnAttack(InputAction.CallbackContext context)
     {
-        if (context.started && axeOn && !allowButtonHold && !hiding)
+        if (context.started && axeOn && !allowButtonHold && !hiding && !changing)
         {
             attacking = true;
             axeAnim.SetBool("attacking", true);
@@ -292,21 +297,22 @@ public class HandsSystem : MonoBehaviour
 
     public void OnChange(InputAction.CallbackContext context)
     {
-        if (context.started && canChange && !reloading)
+        if (context.started && canChange && !reloading && !attacking && !shooting && !shootingAim)
         {
+            canChange = false;
+            changing = true;
             if (gunOn && !axeOn)
             {
-                canChange = false;
-                handsAxe.SetActive(true); handsFlash.SetActive(false);
+                handsAxe.SetActive(true);
                 gunAnim.SetTrigger("hide");
+                flashAnim.SetTrigger("hide");
                 hiding = true;
                 handsTemp = handsGun;
                 Invoke(nameof(ResetChange), 1);
             }
             else if (!gunOn && axeOn)
             {
-                canChange = false;
-                handsGun.SetActive(true); handsAxe.SetActive(false); handsFlash.SetActive(lightOn ? true : false);
+                handsGun.SetActive(true); handsFlash.SetActive(lightOn ? true : false);
                 axeAnim.SetTrigger("hide");
                 hiding = true;
                 handsTemp = handsAxe;
@@ -330,6 +336,7 @@ public class HandsSystem : MonoBehaviour
             else if (!lightOn )
             {
                 handsFlash.SetActive(axeOn ? false : true); light.SetActive(true);
+                flashAnim.SetTrigger("fast");
             }
         }
     }
