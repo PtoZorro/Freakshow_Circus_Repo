@@ -6,6 +6,18 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Freakshow_Circus/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    path: Assets/Freakshow_Circus/Scenes/MainMenu.unity
+    guid: 575f86df00ab5db46a2e068d1347ec82
+  - enabled: 1
+    path: Assets/Freakshow_Circus/Scenes/Nivel_1.unity
+    guid: 35892b590af2947438a79da77b18e39f
+  - enabled: 1
+    path: Assets/Freakshow_Circus/Scenes/Nivel_2.unity
+    guid: aa1441e06d4c80d45bf3893f2a7d1531
+  - enabled: 1
+    path: Assets/Freakshow_Circus/Scenes/GameOver.unity
+    guid: 3cffe86d51917e444951e3481ace34dc
+  - enabled: 1
+    path: Assets/Freakshow_Circus/Scenes/Win.unity
+    guid: 281dd762991e6294194aea5d2a56cff0
   m_configObjects: {}

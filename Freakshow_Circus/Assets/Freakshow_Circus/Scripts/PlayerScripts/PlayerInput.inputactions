@@ -87,7 +87,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Jump",
+                    "name": "Interact",
                     "type": "Button",
                     "id": "3ef4d542-bd6b-49ac-a9c7-918dcfe67ee3",
                     "expectedControlType": "Button",
@@ -302,18 +302,18 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "Gamepad",
-                    "action": "Jump",
+                    "action": "Interact",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
                 {
                     "name": "",
                     "id": "a5251264-0877-4203-a355-0734b29896bf",
-                    "path": "<Keyboard>/space",
+                    "path": "<Keyboard>/e",
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
-                    "action": "Jump",
+                    "action": "Interact",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -342,7 +342,7 @@
                 {
                     "name": "",
                     "id": "711de358-a6ff-4cbe-b5dc-8c8163f61d56",
-                    "path": "<Gamepad>/dpad/up",
+                    "path": "<Gamepad>/leftShoulder",
                     "interactions": "",
                     "processors": "",
                     "groups": "Gamepad",
@@ -358,28 +358,6 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Flashlight",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "0c84c8db-a8f5-443e-ad80-97da6818b763",
-                    "path": "<Gamepad>/buttonNorth",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Gamepad",
-                    "action": "Change",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "f26cc830-0e57-4895-8428-6ba6c4e02b2f",
-                    "path": "<Keyboard>/tab",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "Change",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -402,6 +380,28 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Aim",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0c84c8db-a8f5-443e-ad80-97da6818b763",
+                    "path": "<Gamepad>/buttonNorth",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "Change",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f26cc830-0e57-4895-8428-6ba6c4e02b2f",
+                    "path": "<Keyboard>/tab",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "Change",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

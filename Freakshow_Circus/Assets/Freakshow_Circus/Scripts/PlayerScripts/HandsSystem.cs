@@ -10,7 +10,7 @@ public class HandsSystem : MonoBehaviour
 {
     #region General Variables
     [Header("General References")]
-    [SerializeField] Camera fpsCam; //Referencia a la cámara desde cuyo centro se dispara (Raycast desde centro cámara)
+    [SerializeField] Camera cam; //Referencia a la cámara desde cuyo centro se dispara (Raycast desde centro cámara)
     [SerializeField] GameObject handsGun;
     [SerializeField] GameObject handsAxe;
     [SerializeField] GameObject handsFlash;
@@ -22,8 +22,10 @@ public class HandsSystem : MonoBehaviour
     GameObject handsTemp;
 
     [Header("Weapon Stats")]
-    public int damage; //Daño base del arma por bala
-    public float range; //Alcance de disparo (longitud del Raycast)
+    public int gunDamage; //Daño base del arma por bala
+    public int axeDamage; 
+    public float gunRange; //Alcance de disparo (longitud del Raycast)
+    public float axeRange; 
     public float spread; //Dispersión de los disparos
     public float shootingCooldown; //Tiempo de enfriamiento del arma
     public float attackCooldown;
@@ -34,7 +36,7 @@ public class HandsSystem : MonoBehaviour
 
     [Header("Bullet Management")]
     public int ammoSize; //Número de balas por cargador
-    [SerializeField] int bulletsLeft; //Número de balas dentro del cargador ACTUAL
+    public int bulletsLeft; //Número de balas dentro del cargador ACTUAL
     [SerializeField] int bulletsShot; //Número de balas YA DISPARADAS dentro del cargador actual
     public TextMeshProUGUI ammoText;
 
@@ -50,17 +52,21 @@ public class HandsSystem : MonoBehaviour
     [SerializeField] bool axeOn;
     [SerializeField] bool flashOn;
     [SerializeField] bool lightOn;
-    [SerializeField] bool aiming;
+    public bool aiming;
     bool canChange;
     bool hiding;
+    bool shield;
 
     [Header("Feedback & Graphics")]
     Animator gunAnim;
     Animator axeAnim;
     Animator flashAnim;
+    Animator camAnim;
+    [SerializeField] Animator deathAnimator;
     [SerializeField] GameObject muzzleFlash; //Objeto feedback del fogonazo
     [SerializeField] bool attackIsSounding; //Si es verdadero, el sonido de disparo ya suena, por lo que no hay que repetirlo
     [SerializeField] GameObject hitGraphic;
+    [SerializeField] GameObject hitGraphicBlood;
 
     #endregion
 
@@ -70,11 +76,13 @@ public class HandsSystem : MonoBehaviour
         gunAnim = handsGun.GetComponent<Animator>();
         axeAnim = handsAxe.GetComponent<Animator>();
         flashAnim = handsFlash.GetComponent<Animator>();
+        camAnim = cam.GetComponent<Animator>();
         attackIsSounding = false;
         bulletsLeft = ammoSize;
         canShoot = true;
         canChange = true;
         aiming = false;
+        //muzzleFlash.SetActive(false);
     }
 
     // Update is called once per frame
@@ -87,11 +95,10 @@ public class HandsSystem : MonoBehaviour
         flashOn = handsFlash.activeSelf;
         lightOn = light.activeSelf;
 
-        //if (bulletsLeft <= 0) {gunAnim.SetBool("empty", true); }
-        //else { gunAnim.SetBool("empty", false); }
-
         gunAnim.SetBool("oneLeft", bulletsLeft <= 0 && !aiming);
         gunAnim.SetBool("empty", bulletsLeft <= 0);
+
+        if (GameManager.Instance.playerDead) { PlayerDeath(); }
     }
 
     void Inputs()
@@ -106,52 +113,58 @@ public class HandsSystem : MonoBehaviour
         {
             Attack();
         }
+
+        camAnim.SetBool("aim", aiming);
     }
 
     void Shoot()
     {
         canShoot = false; //Estamos en el proceso de disparo, por tanto YA NO PODEMOS DISPARAR hasta que acabe
 
-        Debug.Log("shoot");
-
         gunAnim.SetTrigger("shoot");
+        AudioManager.Instance.PlaySFX(0);
 
         //Al inicio del disparo, si hay dispersión, se genera la randomización de dicha dispersión (cada disparo tiene una dispersión diferente)
         float spreadX = Random.Range(-spread, spread);
         float spreadY = Random.Range(-spread, spread);
         float spreadZ = Random.Range(-spread, spread);
-        Vector3 direction = fpsCam.transform.forward + new Vector3(spreadX, spreadY, spreadZ);
+        Vector3 direction = cam.transform.forward + new Vector3(spreadX, spreadY, spreadZ);
 
         //Raycast del disparo
         //Generar un Raycast: Physics.Raycast(Origen, Dirección, Variable Almacén del impacto, longitud del rayo, a qué layer golpea el rayo)
         //Si no declaramos layer en un Raycast, golpea a todo lo que tenga collider
-        if (Physics.Raycast(fpsCam.transform.position, direction, out hit, range, enemyLayer))
+        if (Physics.Raycast(cam.transform.position, direction, out hit, gunRange, enemyLayer))
         {
-            Debug.DrawRay(fpsCam.transform.position, direction, Color.red);
-            Debug.Log(hit.collider.name);
+            // Obtener el punto de impacto
+            Vector3 hitPoint = hit.point;
 
             //A PARTIR DE AQUÍ SE CODEAN LOS EFECTOS DEL RAYCAST. EN ESTE CASO ES UN DISPARO
             //EN ESTE CASO SE CODEA HACER DAÑO
             if (hit.collider.CompareTag("Enemy"))
             {
                 //Hacer daño concreto
-                //EnemyDamage enemyScript = hit.collider.GetComponent<EnemyDamage>(); //ACCESO DIRECTO AL SCRIPT DEL ENEMIGO HITEADO
-                //enemyScript.TakeDamage(damage);
-            }
+                EnemyDamage enemyScript = hit.collider.GetComponent<EnemyDamage>(); //ACCESO DIRECTO AL SCRIPT DEL ENEMIGO HITEADO
+                enemyScript.TakeDamage(gunDamage);
 
+                // Generar el sistema de partículas en el punto de impacto
+                Instantiate(hitGraphicBlood, hitPoint, transform.rotation);
+            }
         }
 
-        if (Physics.Raycast(fpsCam.transform.position, direction, out hit, range))
-        {
-            // Obtener el punto de impacto
-            Vector3 hitPoint = hit.point;
+        if (Physics.Raycast(cam.transform.position, direction, out hit, gunRange))
+        {   
+            if (!hit.collider.CompareTag("Enemy"))
+            {
+                // Obtener el punto de impacto
+                Vector3 hitPoint = hit.point;
 
-            // Generar el sistema de partículas en el punto de impacto
-            //Instantiate(hitGraphic, hitPoint, Quaternion.identity);
+                // Generar el sistema de partículas en el punto de impacto
+                Instantiate(hitGraphic, hitPoint, transform.rotation);
+            }
         }
 
         //Instanciar o visualizar los efectos del disparo (hitGraphics)
-        //muzzleFlash.SetActive(true);
+        muzzleFlash.SetActive(true);
 
         bulletsLeft--; //Restamos una bala al cargador actual
 
@@ -165,10 +178,46 @@ public class HandsSystem : MonoBehaviour
     {
         canShoot = false;
 
-        Debug.Log("attack");
-
         if (!alreadyAttacked) axeAnim.SetTrigger("attack1");
         else axeAnim.SetTrigger("attack2");
+        AudioManager.Instance.PlaySFX(1);
+
+        //Al inicio del disparo, si hay dispersión, se genera la randomización de dicha dispersión (cada disparo tiene una dispersión diferente)
+        float spreadX = Random.Range(-spread, spread);
+        float spreadY = Random.Range(-spread, spread);
+        float spreadZ = Random.Range(-spread, spread);
+        Vector3 direction = cam.transform.forward + new Vector3(spreadX, spreadY, spreadZ);
+
+        if (Physics.Raycast(cam.transform.position, direction, out hit, axeRange, enemyLayer))
+        {
+            // Obtener el punto de impacto
+            Vector3 hitPoint = hit.point;
+
+            //A PARTIR DE AQUÍ SE CODEAN LOS EFECTOS DEL RAYCAST. EN ESTE CASO ES UN DISPARO
+            //EN ESTE CASO SE CODEA HACER DAÑO
+            if (hit.collider.CompareTag("Enemy"))
+            {
+                //Hacer daño concreto
+                EnemyDamage enemyScript = hit.collider.GetComponent<EnemyDamage>(); //ACCESO DIRECTO AL SCRIPT DEL ENEMIGO HITEADO
+                enemyScript.TakeDamage(axeDamage);
+
+                // Generar el sistema de partículas en el punto de impacto
+                Instantiate(hitGraphicBlood, hitPoint, transform.rotation);
+            }
+
+        }
+
+        if (Physics.Raycast(cam.transform.position, direction, out hit, axeRange))
+        {
+            if (!hit.collider.CompareTag("Enemy"))
+            {
+                // Obtener el punto de impacto
+                Vector3 hitPoint = hit.point;
+
+                // Generar el sistema de partículas en el punto de impacto
+                Instantiate(hitGraphic, hitPoint, transform.rotation);
+            }
+        }
 
         alreadyAttacked = true;
 
@@ -185,6 +234,7 @@ public class HandsSystem : MonoBehaviour
 
     void ResetShoot()
     {
+        muzzleFlash.SetActive(false);
         canShoot = true; //La acción de disparo ha acabado y por tanto (si se reunen las condiciones) podemos volver a disparar
         //muzzleFlash.SetActive(false);
     }
@@ -199,17 +249,32 @@ public class HandsSystem : MonoBehaviour
         if (!reloading)
         {
             reloading = true; //Entrar en estado recarga (No se pueden hacer otras acciones con el arma)
+            AudioManager.Instance.PlaySFX(2);
             Invoke(nameof(ReloadFinished), reloadTime); //Intentar hacer coincidir el valor de reloadTime con la duración de la anim de recarga.
         }
     }
 
     void ReloadFinished()
     {
-        bulletsLeft = ammoSize; //Balas actuales pasan a ser el máximo por cargador actual
+        if (GameManager.Instance.totalAmmo >= ammoSize)
+        {
+            int bulletsToReload = ammoSize - bulletsLeft;
+            bulletsLeft = bulletsLeft + bulletsToReload;
+            GameManager.Instance.totalAmmo -= bulletsToReload;
+        }
+        else
+        {
+            int bulletsToReload = ammoSize - bulletsLeft;
+            bulletsLeft = bulletsLeft + bulletsToReload;
+            GameManager.Instance.totalAmmo = 0;
+        }
+
         reloading = false; //Salir del estado de recarga (Se pueden hacer otras cosas con el arma)
         handsFlash.SetActive(false);
-        handsFlash.SetActive(true);
+        handsFlash.SetActive(light.activeSelf);
         flashAnim.SetTrigger("fast");
+
+        AudioManager.Instance.PlaySFX(7);
     }
 
     void ResetChange() 
@@ -220,6 +285,16 @@ public class HandsSystem : MonoBehaviour
         handsTemp = null;
         hiding = false;
         changing = false; 
+    }
+
+    void PlayerDeath()
+    {
+        handsAxe.SetActive(false);
+        handsGun.SetActive(false);
+        handsFlash.SetActive(false);
+        light.SetActive(false);
+        deathAnimator.SetTrigger("death");
+        GetComponent<PlayerInput>().enabled = false;
     }
 
     #region New Input Methods
@@ -249,7 +324,7 @@ public class HandsSystem : MonoBehaviour
 
     public void OnAim(InputAction.CallbackContext context)
     {
-        if (context.started && gunOn && bulletsLeft > 0 && !shooting && !hiding && !reloading && !changing)
+        if (context.started && gunOn && bulletsLeft > 0 && !shooting && !hiding && !changing)
         {
             aiming = true;
             gunAnim.SetBool("aiming", true);
@@ -261,11 +336,29 @@ public class HandsSystem : MonoBehaviour
         }
     }
 
+    public void OnShield(InputAction.CallbackContext context)
+    {
+        if (context.started && axeOn && !attacking && !hiding && !changing && !shield)
+        {
+            shield = true;
+            GameManager.Instance.isShield = true;
+            attacking = false;
+            axeAnim.SetTrigger("shield");
+            axeAnim.SetBool("isShield", true);
+        }
+        if (context.canceled)
+        {
+            shield = false;
+            GameManager.Instance.isShield = false;
+            axeAnim.SetBool("isShield", false);
+        }
+    }
+
     public void OnReload(InputAction.CallbackContext context)
     {
         if (context.started && gunOn && !hiding && !changing)
         {
-            if (bulletsLeft < ammoSize && !reloading)
+            if (bulletsLeft < ammoSize && GameManager.Instance.totalAmmo > 0 && !reloading)
             {
                 gunAnim.SetTrigger("reload");
                 flashAnim.SetTrigger("hide");
@@ -279,7 +372,9 @@ public class HandsSystem : MonoBehaviour
         if (context.started && axeOn && !allowButtonHold && !hiding && !changing)
         {
             attacking = true;
+            shield = false;
             axeAnim.SetBool("attacking", true);
+            axeAnim.SetBool("isShield", false);
             if (!attackIsSounding)
             {
                 //weaponSound.Play();
@@ -308,7 +403,7 @@ public class HandsSystem : MonoBehaviour
                 flashAnim.SetTrigger("hide");
                 hiding = true;
                 handsTemp = handsGun;
-                Invoke(nameof(ResetChange), 1);
+                Invoke(nameof(ResetChange), .5f);
             }
             else if (!gunOn && axeOn)
             {
@@ -316,7 +411,7 @@ public class HandsSystem : MonoBehaviour
                 axeAnim.SetTrigger("hide");
                 hiding = true;
                 handsTemp = handsAxe;
-                Invoke(nameof(ResetChange), 1);
+                Invoke(nameof(ResetChange), .5f);
             }
         }
     }
@@ -325,6 +420,7 @@ public class HandsSystem : MonoBehaviour
     {
         if (context.started && canChange && !reloading)
         {
+            canChange = false;
             if (lightOn)
             {
                 flashAnim.SetTrigger("hide");
@@ -332,11 +428,14 @@ public class HandsSystem : MonoBehaviour
                 handsTemp = handsFlash;
                 Invoke(nameof(ResetChange), .5f);
                 light.SetActive(false);
+                AudioManager.Instance.PlaySFX(3);
             }
             else if (!lightOn )
             {
                 handsFlash.SetActive(axeOn ? false : true); light.SetActive(true);
                 flashAnim.SetTrigger("fast");
+                Invoke(nameof(ResetChange), .5f);
+                AudioManager.Instance.PlaySFX(3);
             }
         }
     }

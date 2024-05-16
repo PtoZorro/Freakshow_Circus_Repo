@@ -6,8 +6,8 @@ using UnityEngine.AI;
 public class EnemyController : MonoBehaviour
 {
     [Header("AI Configuration")]
-    [SerializeField] NavMeshAgent agent; //Ref al componente Agente, que permite que el objeto tenga IA
-    [SerializeField] Transform target; //Ref al transform del objeto que la IA va a perseguir
+    NavMeshAgent agent; //Ref al componente Agente, que permite que el objeto tenga IA
+    Transform target; //Ref al transform del objeto que la IA va a perseguir
     [SerializeField] LayerMask targetLayer; //Determina cual es la capa de detección del target
     [SerializeField] LayerMask groundLayer; //Determina cual es la capa de detección del suelo
 
@@ -18,7 +18,10 @@ public class EnemyController : MonoBehaviour
 
     [Header("Attack Configuration")]
     public float timeBetweenAttacks; //Tiempo de espera entre ataque y ataque
+    public float damage1Delay;
+    public float damage2Delay;
     bool alreadyAttacked; //Bool para determinar si se ha atacado
+    [SerializeField] bool has2Attacks;
 
     [Header("States & Detection")]
     [SerializeField] float sightRange; //Rango de detección de persecución de la IA
@@ -52,7 +55,7 @@ public class EnemyController : MonoBehaviour
         //Si no detecta el target ni está en rango de ataque: PATRULLA
         if (!targetInSightRange && !targetInAttackRange) Patroling();
         //Si detecta el target pero no está en rango de ataque: PERSIGUE
-        if (targetInSightRange && !targetInAttackRange) ChaseTarget();
+        if (targetInSightRange && !targetInAttackRange && !alreadyAttacked) ChaseTarget();
         //Si detecta el target y está en rango de ataque: ATACA
         if (targetInSightRange && targetInAttackRange) AttackTarget();
 
@@ -60,7 +63,7 @@ public class EnemyController : MonoBehaviour
 
     void Patroling()
     {
-        if (!isWalking) anim.SetBool("iddle", false); anim.SetBool("walk", true); anim.SetBool("attacking", false); 
+        if (!isWalking) { anim.SetBool("iddle", false); anim.SetTrigger("walk"); Debug.Log("walk"); }
         isIddle = false; isWalking = true; isAttacking = false;
 
         if (!walkPointSet)
@@ -99,30 +102,45 @@ public class EnemyController : MonoBehaviour
 
     void ChaseTarget()
     {
-        //Una vez detecta el target, lo persigue
+
         agent.SetDestination(target.position);
+
+        if (!isWalking) { if (!isWalking) anim.SetBool("iddle", false); anim.SetTrigger("walk"); }
+        isIddle = false; isWalking = true; isAttacking = false;
     }
 
     void AttackTarget()
     {
-        //Cuando comienza a atacr, no se mueve (se persigue a sí mismo)
         agent.SetDestination(transform.position);
-        //La IA mira directamente al target
+
         transform.LookAt(target);
         transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
 
         if (!alreadyAttacked)
         {
-            //Si no hemos atacado ya, atacamos
-            Debug.Log("Enemigo está atacando");
+            if (!isAttacking) anim.SetBool("iddle", false); anim.SetTrigger("attack"); 
+            isIddle = false; isWalking = false; isAttacking = true;
 
-            //gameManager.TakeDamage(damageToPlayer);
+            AudioManager.Instance.PlaySFX(5);
 
-            if (!isAttacking) anim.SetBool("iddle", false); anim.SetBool("walk", false); anim.SetBool("attack", true); 
-            isIddle = false; isWalking = false; isAttacking = true; 
+            StartCoroutine(DamageDone());
 
             alreadyAttacked = true;
-            Invoke(nameof(ResetAttack), timeBetweenAttacks); //Vuelve a atacar en el intervalo de tiempo indicado por la variable
+            Invoke(nameof(ResetAttack), timeBetweenAttacks);
+        }
+    }
+
+    IEnumerator DamageDone()
+    {
+        yield return new WaitForSeconds(damage1Delay);
+
+        if (targetInAttackRange) GameManager.Instance.TakeDamage(damageToPlayer);
+
+        if (has2Attacks)
+        {
+            yield return new WaitForSeconds(damage2Delay);
+
+            if (targetInAttackRange) GameManager.Instance.TakeDamage(damageToPlayer);
         }
     }
 

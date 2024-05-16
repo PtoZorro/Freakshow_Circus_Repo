@@ -11,7 +11,9 @@ public class PlayerController : MonoBehaviour
 
     [Header("Movement & Look Stats")]
     [SerializeField] GameObject camHolder;
-    public float speed, sprintSpeed, crouchSpeed, maxForce, sensitivity;
+    PlayerInput input;
+    HandsSystem hands;
+    public float speed, sprintSpeed, crouchSpeed, maxForce, sensitivity, cursorSensitivity, gamepadSensitivity, aimSensitivity; 
     bool isSprinting;
     bool isCrouching;
 
@@ -34,10 +36,13 @@ public class PlayerController : MonoBehaviour
     Vector2 move;
     Vector2 look;
     float lookRotation;
+    bool isGamepad;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        input = GetComponent<PlayerInput>();
+        hands = GetComponent<HandsSystem>();
         anim = GetComponent<Animator>();
         gunAnim = handsGun.GetComponent<Animator>();
         axeAnim = handsAxe.GetComponent<Animator>();
@@ -71,6 +76,10 @@ public class PlayerController : MonoBehaviour
             axeAnim.SetBool("walk", true);
             flashAnim.SetBool("walk", true);
         }
+
+        // Verificar si el control es mediante gamepad
+        isGamepad = input.currentControlScheme.Equals("Gamepad");
+        sensitivity = isGamepad ? (hands.aiming ? aimSensitivity : gamepadSensitivity) : cursorSensitivity;
     }
 
     private void FixedUpdate()
@@ -147,5 +156,6 @@ public class PlayerController : MonoBehaviour
         isCrouching = context.ReadValueAsButton();
         anim.SetBool("isCrouching", isCrouching);
     }
+
     #endregion
 }
