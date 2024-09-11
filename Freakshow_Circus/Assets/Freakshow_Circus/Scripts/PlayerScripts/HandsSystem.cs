@@ -15,6 +15,7 @@ public class HandsSystem : MonoBehaviour
     [SerializeField] GameObject handsAxe;
     [SerializeField] GameObject handsFlash;
     [SerializeField] GameObject light;
+    [SerializeField] GameObject reticule;
     [SerializeField] Transform shootPoint; //Referencia a la posición del objeto desde donde se dispara (Raycast desde posición concreta)
     [SerializeField] RaycastHit hit; //Referencia a la info de impacto de los disparos (información de impacto Raycast)
     [SerializeField] LayerMask enemyLayer; //Referencia a la Layer que puede impactar el disparo
@@ -115,6 +116,7 @@ public class HandsSystem : MonoBehaviour
         }
 
         camAnim.SetBool("aim", aiming);
+        reticule.SetActive(!aiming);
     }
 
     void Shoot()
